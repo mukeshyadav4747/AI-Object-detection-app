@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+pyjwt
+bcrypt
+sqlalchemy
+sqlalchemy.orm 
+pymysql
+pillow
+torch>=2.0.0
+ultralytics>=8.3.0
+streamlit
+requests
+datetime
