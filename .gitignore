@@ -2,3 +2,4 @@ venv
 .env
 backend/uploads
 __pycache__
+*.pt
