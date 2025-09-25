@@ -1,10 +1,20 @@
+# main.py
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from . import models, database, auth, utils
-import shutil, os, jwt, json
+import shutil, os, jwt, json, time
 from typing import List
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "backend/uploads")
+OUTPUT_DIR = os.getenv("OUTPUT_DIR", "backend/uploads/annotated")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=database.engine)
@@ -16,11 +26,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-UPLOAD_DIR = "backend/uploads"
-OUTPUT_DIR = "backend/uploads/annotated"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def get_db():
     db = database.SessionLocal()
@@ -63,24 +68,22 @@ def upload_image(file: UploadFile = File(...), token: str = "", conf: float = 0.
     username = payload.get("sub")
     user_id = payload.get("user_id")
 
-    # save original
+    # Save original file
     file_path = os.path.join(UPLOAD_DIR, file.filename)
-    # avoid overwriting: append timestamp if exists
     if os.path.exists(file_path):
         base, ext = os.path.splitext(file.filename)
-        import time
         file_path = os.path.join(UPLOAD_DIR, f"{base}_{int(time.time())}{ext}")
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # prepare output path
+    # Prepare output path
     out_filename = os.path.splitext(os.path.basename(file_path))[0] + "_annotated.jpg"
     output_path = os.path.join(OUTPUT_DIR, out_filename)
 
-    # run detection (stronger settings)
+    # Run detection
     detections, avg_conf = utils.predict_and_annotate(file_path, output_path,
-                                                     conf_threshold=conf, iou_threshold=0.45, imgsz=1280)
+                                                      conf_threshold=conf, iou_threshold=0.45, imgsz=1280)
 
     # Save record to DB
     record = models.UploadedImage(

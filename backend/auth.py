@@ -1,11 +1,16 @@
-
+# auth.py
 import jwt, bcrypt
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from . import models
+import os
+from dotenv import load_dotenv
 
-SECRET_KEY = "ec65ff188dec27941b38995f1dd9f0aae9613c3dcc27e62622793c1c1b2f18df"
-ALGORITHM = "HS256"
+# Load environment variables
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")  # Default to HS256 if not set
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
